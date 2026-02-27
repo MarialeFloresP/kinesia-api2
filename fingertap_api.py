@@ -13,6 +13,13 @@ from scipy.interpolate import interp1d
 def get_video_info(video_path):
     cap = cv2.VideoCapture(video_path)
 
+    print("VIDEO PATH:", video_path)
+    print("IS OPENED:", cap.isOpened())
+
+    ret, frame = cap.read()
+    print("FIRST READ RET:", ret)
+    print("FRAME IS NONE:", frame is None)
+
     if not cap.isOpened():
         raise ValueError("Error abriendo el video")
 
@@ -466,4 +473,5 @@ def save_results(patient_id, signal_df, metrics_df):
         metrics_df.to_csv(global_path, mode='a', header=False, index=False)
     else:
         metrics_df.to_csv(global_path, index=False)
+
 
