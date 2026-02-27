@@ -48,10 +48,10 @@ def extract_landmarks(cap):
         min_tracking_confidence=0.5
     ) as hands:
 
-        while cap.isOpened():
+        while True:
             success, img = cap.read()
-            img = cv2.resize(img, (1280, 720))
-            if not success:
+            
+            if not success or img is None:
                 break
 
             ts = cap.get(cv2.CAP_PROP_POS_MSEC)
@@ -473,5 +473,6 @@ def save_results(patient_id, signal_df, metrics_df):
         metrics_df.to_csv(global_path, mode='a', header=False, index=False)
     else:
         metrics_df.to_csv(global_path, index=False)
+
 
 
