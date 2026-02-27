@@ -1,5 +1,5 @@
-fastapi
-uvicorn
+flask
+gunicorn
 opencv-python-headless
 mediapipe
 numpy
@@ -7,3 +7,4 @@ pandas
 scipy
 matplotlib
 python-multipart
+
