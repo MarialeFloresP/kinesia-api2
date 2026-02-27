@@ -1,12 +1,13 @@
 fastapi
 uvicorn
-opencv-python-headless
+opencv-python-headless==4.9.0.80
 mediapipe==0.10.9
 numpy
 pandas
 scipy
 matplotlib
 python-multipart
+
 
 
 
