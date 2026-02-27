@@ -1,10 +1,19 @@
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import os
 
 from fingertap_api import analyze_fingertap
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # para pruebas
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/analyze")
 async def analyze_video(file: UploadFile = File(...)):
@@ -24,3 +33,4 @@ async def analyze_video(file: UploadFile = File(...)):
     os.remove(temp_path)
 
     return results
+
