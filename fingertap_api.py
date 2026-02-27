@@ -387,7 +387,7 @@ def analyze_fingertap(video_path):
         "metrics": temporal_results,
         "signal": {
             "time": df_processed["time"].tolist(),
-            "distance": df_processed["dist_smooth"].tolist()
+            "distance": df_processed["amp_smooth"].tolist()
         },
         "peaks": peaks.tolist(),
         "troughs": troughs.tolist(),
@@ -475,6 +475,7 @@ def save_results(patient_id, signal_df, metrics_df):
         metrics_df.to_csv(global_path, mode='a', header=False, index=False)
     else:
         metrics_df.to_csv(global_path, index=False)
+
 
 
 
