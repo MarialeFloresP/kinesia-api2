@@ -26,9 +26,9 @@ def extract_hand_opening_signal(video_path):
     signal = []
     timestamps = []
 
-    while cap.isOpened():
+    while True:
         ret, frame = cap.read()
-        if not ret:
+        if not ret or frame is None:
             break
 
         ts = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
@@ -257,12 +257,16 @@ def analyze_opening(video_path):
     metrics["dominant_frequency_fft"] = dominant_freq
 
     return {
-        "df": df_processed,
         "metrics": metrics,
-        "peaks": peaks,
-        "troughs": valleys,
-        "freqs": freqs,
-        "spectrum": spectrum
+        "signal": {
+            "time": df_processed["time"].tolist(),
+            "distance": df_processed["amp_smooth"].tolist()
+        },
+        "peaks": peaks.tolist(),
+        "troughs": valleys.tolist(),
+        "freqs": freqs.tolist(),
+        "spectrum": spectrum.tolist()
     }
+
 
 
