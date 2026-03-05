@@ -82,8 +82,8 @@ def detect_angular_cycles(signal, fps):
     # Suavizado básico
     signal = (signal - np.mean(signal)) / np.std(signal)
 
-    peaks, _ = find_peaks(signal, distance=fps*0.3,prominence=20)
-    valleys, _ = find_peaks(-signal, distance=fps*0.3, prominence=20)
+    peaks, _ = find_peaks(signal, distance=fps*0.3,prominence=0.5)
+    valleys, _ = find_peaks(-signal, distance=fps*0.3, prominence=0.5)
 
     return peaks, valleys
 
@@ -269,6 +269,9 @@ def analyze_pronation(video_path):
 
     peaks, valleys = detect_angular_cycles(signal_filtered, fps)
 
+    print("Peaks detectados:", len(peaks))
+    print("Valleys detectados:", len(valleys))
+
     metrics = compute_angular_metrics(signal_filtered, peaks, fps)
     
 
@@ -302,4 +305,5 @@ def analyze_pronation(video_path):
         "spectrum": spectrum.tolist() if spectrum is not None else []
     }
     
+
 
