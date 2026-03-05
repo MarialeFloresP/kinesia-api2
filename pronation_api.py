@@ -251,8 +251,13 @@ def analyze_pronation_supination(video_path):
 # -----------------------------------------------------------------
 
 def analyze_pronation(video_path):
-
+    
+    print("----- ANALYZE PRONATION START -----")
     signal, timestamps, fps = extract_pronation_signal(video_path)
+
+    print("Signal length:", len(signal))
+    print("Timestamps length:", len(timestamps))
+    print("FPS:", fps)
 
     if len(signal) < 10:
         raise ValueError("Señal insuficiente")
@@ -265,6 +270,7 @@ def analyze_pronation(video_path):
     peaks, valleys = detect_angular_cycles(signal_filtered, fps)
 
     metrics = compute_angular_metrics(signal_filtered, peaks, fps)
+    
 
     # FFT
     fft_results = compute_fft(df_processed)
@@ -282,6 +288,8 @@ def analyze_pronation(video_path):
         freqs = None
         spectrum = None
 
+    print("Metrics:", metrics)
+    
     return {
         "metrics": metrics,
         "signal": {
@@ -294,3 +302,4 @@ def analyze_pronation(video_path):
         "spectrum": spectrum.tolist() if spectrum is not None else []
     }
     
+
