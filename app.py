@@ -19,7 +19,9 @@ app.add_middleware(
 
 @app.post("/analyze")
 async def analyze_video(file: UploadFile = File(...), movement: str = Form(...)):
-
+    
+    print("Video recibido:", file.filename)
+    
     # Guardar video temporal
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         content = await file.read()
@@ -35,11 +37,14 @@ async def analyze_video(file: UploadFile = File(...), movement: str = Form(...))
             results = analyze_pronation(temp_path)
         else:
             return {"error": "Invalid movement type"}
+        
+        print("Análisis completado")
     
     except Exception as e:
         os.remove(temp_path)
         return {"error": str(e)}
 
     os.remove(temp_path)
+
 
     return results
