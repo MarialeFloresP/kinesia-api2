@@ -7,9 +7,7 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d
 
-# ==========================
-# 1️⃣ EXTRAER SEÑAL ANGULAR
-
+# EXTRAER SEÑAL ANGULAR -------------------------------------------
 
 def extract_pronation_signal(video_path):
 
@@ -25,9 +23,9 @@ def extract_pronation_signal(video_path):
     angle_signal = []
     timestamps = []
 
-    while cap.isOpened():
+    while True:
         ret, frame = cap.read()
-        if not ret:
+        if not ret or frame is None:
             break
         
         ts = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
@@ -77,10 +75,7 @@ def build_pronation_dataframe(signal, timestamps):
     return df
 
 
-
-# ==========================
-# 2️⃣ DETECTAR CICLOS ANGULARES
-# ==========================
+# DETECTAR CICLOS ANGULARES -----------------------------------
 
 def detect_angular_cycles(signal, fps):
 
@@ -93,9 +88,7 @@ def detect_angular_cycles(signal, fps):
     return peaks, valleys
 
 
-# ==========================
-# 3️⃣ CALCULAR MÉTRICAS
-# ==========================
+# CALCULAR MÉTRICAS ----------------------------------------------------
 
 def compute_angular_metrics(signal, peaks, fps):
 
@@ -139,8 +132,6 @@ def compute_angular_metrics(signal, peaks, fps):
         "decrement_7": decrement_7,
         "global_fatigue": global_fatigue
     }
-
-
 
 
 # 3. PRE-PREOCESAMIENTO DE LA SEÑAL -----------------------------------------
@@ -233,7 +224,6 @@ def compute_fft(df):
     }
 
 
-
 def analyze_pronation_supination(video_path):
 
     signal, timestamps, fps = extract_pronation_signal(video_path)
@@ -241,18 +231,18 @@ def analyze_pronation_supination(video_path):
     if len(signal) < 10:
         return None
 
-    # 1️⃣ Construir DataFrame
+    # Construir DataFrame
     df = build_pronation_dataframe(signal, timestamps)
 
-    # 2️⃣ Preprocesamiento (TU función)
+    # Preprocesamiento
     df_processed = preprocess_signal(df)
 
     signal_filtered = df_processed['amp_smooth'].values
 
-    # 3️⃣ Detectar ciclos
+    # Detectar ciclos
     peaks, valleys = detect_angular_cycles(signal_filtered, fps)
 
-    # 4️⃣ Calcular métricas
+    # Calcular métricas
     metrics = compute_angular_metrics(signal_filtered, peaks, fps)
 
     return metrics
@@ -293,10 +283,14 @@ def analyze_pronation(video_path):
         spectrum = None
 
     return {
-        "df": df_processed,
         "metrics": metrics,
-        "peaks": peaks,
-        "troughs": valleys,
-        "freqs": freqs,
-        "spectrum": spectrum
+        "signal": {
+            "time": df_processed["time"].tolist(),
+            "distance": df_processed["amp_smooth"].tolist()
+        },
+        "peaks": peaks.tolist(),
+        "troughs": valleys.tolist(),
+        "freqs": freqs.tolist() if freqs is not None else [],
+        "spectrum": spectrum.tolist() if spectrum is not None else []
     }
+    
