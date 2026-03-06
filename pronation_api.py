@@ -7,6 +7,8 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d
 
+import gc
+
 # EXTRAER SEÑAL ANGULAR -------------------------------------------
 
 def extract_pronation_signal(video_path):
@@ -292,6 +294,8 @@ def analyze_pronation(video_path):
         spectrum = None
 
     print("Metrics:", metrics)
+
+    gc.collect() # liberar memoria
     
     return {
         "metrics": metrics,
@@ -305,5 +309,6 @@ def analyze_pronation(video_path):
         "spectrum": spectrum.tolist() if spectrum is not None else []
     }
     
+
 
 
