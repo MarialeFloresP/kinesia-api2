@@ -8,6 +8,7 @@ from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
+import gc
 
 # 1. EXTRAER SEÑAL DE APERTURA -------------------------------------------------------
 
@@ -256,6 +257,8 @@ def analyze_opening(video_path):
     # Agregar métricas FFT al dict
     metrics["dominant_frequency_fft"] = dominant_freq
 
+    gc.collect() # liberar memoria
+    
     return {
         "metrics": metrics,
         "signal": {
@@ -267,6 +270,3 @@ def analyze_opening(video_path):
         "freqs": freqs.tolist(),
         "spectrum": spectrum.tolist()
     }
-
-
-
