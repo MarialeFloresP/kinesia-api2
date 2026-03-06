@@ -9,6 +9,8 @@ from scipy.signal import find_peaks
 from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d
 
+import gc
+
 # 1️. INFORMACIÓN DEL VIDEO -------------------------------------------------
 def get_video_info(video_path):
     cap = cv2.VideoCapture(video_path)
@@ -383,6 +385,8 @@ def analyze_fingertap(video_path):
             "regularity_index": fft_results["regularity_index"]
         })
 
+    gc.collect() # liberar memoria
+    
     return {
         "metrics": temporal_results,
         "signal": {
@@ -395,86 +399,6 @@ def analyze_fingertap(video_path):
         "spectrum": fft_results["spectrum"].tolist() if fft_results else []
     }
 
-
-# GUARDADO DE SEÑALES ------------------------------
-def build_metrics_dataframe(metrics_dict, patient_id, estado, movement, hand, attempt):
-
-    row = {
-        "patient_id": patient_id,
-        "estado": estado,
-        "movement": movement,
-        "hand": hand,
-        "attempt": attempt,
-        "tap_count": metrics_dict["tap_count"],
-        "mean_amp": metrics_dict["mean_amp"],
-        "std_amp": metrics_dict["std_amp"],
-        "diff3": metrics_dict["diff3"],
-        "diff5": metrics_dict["diff5"],
-        "diff7": metrics_dict["diff7"],
-        "diff10": metrics_dict["diff10"],
-        "ft_simple": metrics_dict.get("ft_simple", 0),
-        "ft_iti": metrics_dict.get("ft_iti", 0),
-        "mean_iti": metrics_dict.get("mean_iti", 0),
-        "std_iti": metrics_dict.get("std_iti", 0),
-        "mean_velocity": metrics_dict.get("mean_velocity", 0),
-        "slope_amplitude": metrics_dict.get("slope_amplitude", 0),
-        "dominant_freq": metrics_dict.get("dominant_freq", 0),
-        "total_energy": metrics_dict.get("total_energy", 0),
-        "regularity_index": metrics_dict.get("regularity_index", 0)
-    }
-
-    return pd.DataFrame([row])
-
-def build_signal_dataframe(df_processed, patient_id, estado, movement, hand, attempt):
-
-    df = df_processed.copy()
-
-    df["patient_id"] = patient_id
-    df["estado"] = estado
-    df["movement"] = movement
-    df["hand"] = hand
-    df["attempt"] = attempt
-
-    return df[[
-        "patient_id",
-        "estado",
-        "movement",
-        "hand",
-        "attempt",
-        "time",
-        "amp_smooth"
-    ]]
-
-import os
-
-def save_results(patient_id, signal_df, metrics_df):
-
-    patient_folder = os.path.join("data", patient_id)
-    os.makedirs(patient_folder, exist_ok=True)
-
-    # Guardar señales del paciente
-    signal_path = os.path.join(patient_folder, "signals_all_attempts.csv")
-
-    if os.path.exists(signal_path):
-        signal_df.to_csv(signal_path, mode='a', header=False, index=False)
-    else:
-        signal_df.to_csv(signal_path, index=False)
-
-    # Guardar métricas del paciente
-    metrics_path = os.path.join(patient_folder, "metrics_all_attempts.csv")
-
-    if os.path.exists(metrics_path):
-        metrics_df.to_csv(metrics_path, mode='a', header=False, index=False)
-    else:
-        metrics_df.to_csv(metrics_path, index=False)
-
-    # Guardar en CSV global
-    global_path = os.path.join("data", "ALL_PATIENTS_METRICS.csv")
-
-    if os.path.exists(global_path):
-        metrics_df.to_csv(global_path, mode='a', header=False, index=False)
-    else:
-        metrics_df.to_csv(global_path, index=False)
 
 
 
