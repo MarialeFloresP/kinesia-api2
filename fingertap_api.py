@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import matplotlib.pyplot as plt
 import math
 import pandas as pd
 from scipy.signal import find_peaks
@@ -45,9 +44,8 @@ def extract_landmarks(cap):
 
     with mpHands.Hands(
         max_num_hands=1,
-        model_complexity=1,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5
+        min_detection_confidence=0.7,
+        min_tracking_confidence=0.7
     ) as hands:
 
         while True:
@@ -212,15 +210,6 @@ def compute_temporal_metrics(df, prominence=30):
     mean_amp = amps.mean()
     std_amp = amps.std()
 
-    # Padding hasta 10 taps
-    #while len(amps) < 10:
-    #    amps.loc[len(amps)] = 0
-
-    # Diferencias de amplitud
-    #diff3  = amps.iloc[0] - amps.iloc[2]
-    #diff5  = amps.iloc[0] - amps.iloc[4]
-    #diff7  = amps.iloc[0] - amps.iloc[6]
-    #diff10 = amps.iloc[0] - amps.iloc[9]
 
     amps_padded = np.copy(amps)
     while len(amps_padded) < 10:
@@ -247,18 +236,43 @@ def compute_temporal_metrics(df, prominence=30):
         ft_iti = 0
 
 
-    # Velocidad media (derivada discreta)
-    if len(signal_dist) > 1:
-        velocity = np.diff(signal_dist) / np.diff(time_sec)
-        mean_velocity = np.mean(np.abs(velocity))
-        max_velocity = np.max(np.abs(velocity))
+    # --- VELOCIDAD (derivada temporal de la distancia) ---
 
-        # Normalización por amplitud media
-        mean_amplitude_dist = np.mean(signal_dist)
-        mean_velocity_rel = mean_velocity / mean_amplitude_dist
+    if len(signal_dist) > 1 and tap_count > 1:
+
+        # Derivada discreta
+        velocity = np.diff(signal_dist) / np.diff(time_sec)  # px/s
+
+        peak_velocities = []
+
+        # Velocidad pico en cada ciclo (entre picos consecutivos)
+        for i in range(len(peaks) - 1):
+
+            start = peaks[i]
+            end = peaks[i + 1]
+
+            # Ajustar índice porque velocity tiene 1 elemento menos
+            segment = velocity[start:end]  
+
+            if len(segment) > 0:
+                peak_velocities.append(np.max(np.abs(segment)))
+
+        if len(peak_velocities) > 0:
+
+            mean_peak_velocity = np.mean(peak_velocities)  # px/s
+
+            # Normalización por amplitud máxima (px)
+            max_amplitude = np.max(signal_dist)
+
+            if max_amplitude > 0:
+                mean_peak_velocity_norm = mean_peak_velocity / max_amplitude  # s^-1
+            else:
+                mean_peak_velocity_norm = 0
+        else:
+            mean_peak_velocity_norm = 0
+
     else:
-        mean_velocity = 0
-        max_velocity = 0
+        mean_peak_velocity_norm = 0
 
     # Pendiente de amplitud (fatiga)
     if tap_count > 1:
@@ -279,7 +293,7 @@ def compute_temporal_metrics(df, prominence=30):
         "ft_iti": ft_iti,
         "mean_iti": mean_iti,
         "std_iti": std_iti,
-        "mean_velocity": mean_velocity_rel,
+        "mean_velocity": mean_peak_velocity_norm,
         "slope_amplitude": slope,
         "peaks": peaks,
         "troughs": troughs
@@ -305,7 +319,7 @@ def compute_fft(df):
 
     positive = fft_freq > 0
     freqs = fft_freq[positive]
-    spectrum = np.abs(fft_vals[positive])
+    spectrum = (np.abs(fft_vals[positive])**2) / N
 
     dominant_freq = freqs[np.argmax(spectrum)]
 
@@ -330,32 +344,6 @@ def compute_fft(df):
         "total_energy": total_energy,
         "regularity_index": regularity_index
     }
-
-
-# 8. GRÁFICAS -------------------------------------------------
-
-def plot_signal(df, peaks, troughs, hand_label):
-
-    plt.figure(figsize=(10,5))
-    plt.plot(df['time'], df['amp_smooth'])
-    plt.plot(df['time'].iloc[peaks], df['amp_smooth'].iloc[peaks], "o")
-    plt.plot(df['time'].iloc[troughs], df['amp_smooth'].iloc[troughs],"x")
-    plt.xlabel("Tiempo (msec)")
-    plt.ylabel("Amplitud (%)")
-    plt.title(f"Finger Tapping - {hand_label}")
-    plt.grid(True)
-    plt.show()
-
-
-def plot_spectrum(freqs, spectrum, hand_label):
-
-    plt.figure(figsize=(10,5))
-    plt.plot(freqs, spectrum)
-    plt.xlabel("Frecuencia (Hz)")
-    plt.ylabel("Magnitud")
-    plt.title(f"Espectro de Frecuencia - {hand_label}")
-    plt.grid(True)
-    plt.show()
 
 
 # PROCESAR UN VIDEO ---------------------------------------------------------
