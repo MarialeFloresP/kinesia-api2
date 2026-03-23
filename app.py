@@ -22,11 +22,14 @@ async def analyze_video(file: UploadFile = File(...), movement: str = Form(...))
     
     print("Video recibido:", file.filename)
     
-    # Guardar video temporal
+    # Guardar video temporal por chunks (NO carga todo en RAM)
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-        content = await file.read()
-        tmp.write(content)
         temp_path = tmp.name
+        while True:
+            chunk = await file.read(1024 * 1024)  # 1MB por vez
+            if not chunk:
+                break
+            tmp.write(chunk)
 
     try:
         if movement == "fingertap":
