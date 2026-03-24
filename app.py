@@ -7,12 +7,6 @@ from fingertap_api import analyze_fingertap
 from opening_api import analyze_opening
 from pronation_api import analyze_pronation
 
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
-import io
-import json
-
 app = FastAPI()
 
 app.add_middleware(
@@ -28,14 +22,11 @@ async def analyze_video(file: UploadFile = File(...), movement: str = Form(...))
     
     print("Video recibido:", file.filename)
     
-    # Guardar video temporal por chunks (NO carga todo en RAM)
+    # Guardar video temporal
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+        content = await file.read()
+        tmp.write(content)
         temp_path = tmp.name
-        while True:
-            chunk = await file.read(1024 * 1024)  # 1MB por vez
-            if not chunk:
-                break
-            tmp.write(chunk)
 
     try:
         if movement == "fingertap":
@@ -52,53 +43,6 @@ async def analyze_video(file: UploadFile = File(...), movement: str = Form(...))
     except Exception as e:
         os.remove(temp_path)
         return {"error": str(e)}
-
-# Endpoint para subir videos a Drive -------------------------
-
-@app.post("/upload-video")
-async def upload_video(file: UploadFile = File(...)):
-
-    try:
-        print("Subiendo video a Drive:", file.filename)
-
-        # Leer credenciales desde Render
-        credentials_dict = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT"])
-
-        credentials = service_account.Credentials.from_service_account_info(
-            credentials_dict,
-            scopes=["https://www.googleapis.com/auth/drive"]
-        )
-
-        service = build("drive", "v3", credentials=credentials)
-
-        # Leer archivo en memoria (sin guardarlo en disco)
-        file_bytes = await file.read()
-        file_stream = io.BytesIO(file_bytes)
-
-        file_metadata = {
-            "name": file.filename,
-            "parents": ["12pmAnYb9R-1KYRhvXsz8lhxx2AcSUHv1"]
-        }
-
-        media = MediaIoBaseUpload(file_stream, mimetype=file.content_type)
-
-        uploaded_file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="id"
-        ).execute()
-
-        file_id = uploaded_file.get("id")
-
-        print("Subido a Drive con ID:", file_id)
-
-        return {"fileId": file_id}
-
-    except Exception as e:
-        print("ERROR DRIVE:", str(e))
-        return {"error": str(e)}
-
-
 
     os.remove(temp_path)
 
