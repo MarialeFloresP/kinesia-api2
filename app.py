@@ -74,6 +74,8 @@ async def upload_video(file: UploadFile = File(...)):
             scopes=["https://www.googleapis.com/auth/drive"]
         )
 
+        print("Service Account usada:", credentials.service_account_email)
+
         service = build("drive", "v3", credentials=credentials)
 
         file_bytes = await file.read()
