@@ -91,7 +91,8 @@ async def upload_video(file: UploadFile = File(...)):
         uploaded_file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields="id"
+            fields="id",
+            supportsAllDrives=True
         ).execute()
 
         file_id = uploaded_file.get("id")
