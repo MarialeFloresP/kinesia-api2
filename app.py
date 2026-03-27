@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import os
@@ -61,6 +61,8 @@ async def analyze_video(file: UploadFile = File(...), movement: str = Form(...))
 
 # Endpoint para subir videos a Drive -------------------------
 
+
+
 @app.post("/upload-video")
 async def upload_video(file: UploadFile = File(...)):
 
@@ -78,6 +80,28 @@ async def upload_video(file: UploadFile = File(...)):
 
         service = build("drive", "v3", credentials=credentials)
 
+        # Ver si la carpeta existe y es accesible
+        try:
+            folder_info = service.files().get(
+                fileId="15B9UQLcfqj1-x36ITnoLJUoaRuyxagAd",
+                fields="id, name, permissions"
+            ).execute()
+
+            print("Carpeta encontrada:", folder_info)
+
+        except Exception as folder_error:
+            print("ERROR accediendo a la carpeta:", folder_error)
+            raise HTTPException(status_code=500, detail=f"No acceso a carpeta: {folder_error}")
+
+        # Listar archivos visibles (para ver si tiene acceso real)
+        visible_files = service.files().list(
+            pageSize=5,
+            fields="files(id, name)"
+        ).execute()
+
+        print("Archivos visibles:", visible_files)
+
+        # Intentar subir archivo
         file_bytes = await file.read()
         file_stream = io.BytesIO(file_bytes)
 
@@ -96,7 +120,10 @@ async def upload_video(file: UploadFile = File(...)):
 
         file_id = uploaded_file.get("id")
 
+        print("Archivo subido correctamente:", file_id)
+
         return {"fileId": file_id}
 
     except Exception as e:
-        return {"error": str(e)}
+        print("ERROR REAL:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
