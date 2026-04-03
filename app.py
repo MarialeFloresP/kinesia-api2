@@ -36,7 +36,7 @@ client.set_project(os.environ.get("APPWRITE_PROJECT_ID"))
 client.set_key(os.environ.get("APPWRITE_API_KEY")) 
 
 storage = Storage(client)
-BUCKET_ID = "videos_bucket"
+BUCKET_ID = "69cffcbe0025b2b18d16"
 
 
 @app.post("/analyze")
