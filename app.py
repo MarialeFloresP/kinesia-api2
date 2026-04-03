@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import os
+import uuid
 
 from fingertap_api import analyze_fingertap
 from opening_api import analyze_opening
