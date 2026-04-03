@@ -81,7 +81,7 @@ async def upload_video(file: UploadFile = File(...)):
         service = build("drive", "v3", credentials=credentials)
 
         # 2. NUEVO ID de tu carpeta (extraído de tu link)
-        FOLDER_ID = "12pmAnYb9R-1KYRhvXsz8lhxx2AcSUHv1"
+        FOLDER_ID = "15B9UQLcfqj1-x36ITnoLJUoaRuyxagAd"
 
         # Leer el contenido del archivo
         file_bytes = await file.read()
