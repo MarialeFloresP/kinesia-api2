@@ -61,56 +61,39 @@ async def analyze_video(file: UploadFile = File(...), movement: str = Form(...))
 
 # Endpoint para subir videos a Drive -------------------------
 
-
-
 @app.post("/upload-video")
 async def upload_video(file: UploadFile = File(...)):
-
     try:
         print("Subiendo video a Drive:", file.filename)
 
-        credentials_dict = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
+        # 1. Ajustamos el nombre de la variable de entorno a KEY_JSON (como lo pusiste en Render)
+        raw_json = os.environ.get("KEY_JSON")
+        if not raw_json:
+            raise HTTPException(status_code=500, detail="La variable KEY_JSON no está configurada")
+        
+        credentials_dict = json.loads(raw_json)
 
         credentials = service_account.Credentials.from_service_account_info(
             credentials_dict,
             scopes=["https://www.googleapis.com/auth/drive"]
         )
 
-        print("Service Account usada:", credentials.service_account_email)
-
         service = build("drive", "v3", credentials=credentials)
 
-        # Ver si la carpeta existe y es accesible
-        try:
-            folder_info = service.files().get(
-                fileId="15B9UQLcfqj1-x36ITnoLJUoaRuyxagAd",
-                fields="id, name, permissions"
-            ).execute()
+        # 2. NUEVO ID de tu carpeta (extraído de tu link)
+        FOLDER_ID = "12pmAnYb9R-1KYRhvXsz8lhxx2AcSUHv1"
 
-            print("Carpeta encontrada:", folder_info)
-
-        except Exception as folder_error:
-            print("ERROR accediendo a la carpeta:", folder_error)
-            raise HTTPException(status_code=500, detail=f"No acceso a carpeta: {folder_error}")
-
-        # Listar archivos visibles (para ver si tiene acceso real)
-        visible_files = service.files().list(
-            pageSize=5,
-            fields="files(id, name)"
-        ).execute()
-
-        print("Archivos visibles:", visible_files)
-
-        # Intentar subir archivo
+        # Leer el contenido del archivo
         file_bytes = await file.read()
         file_stream = io.BytesIO(file_bytes)
 
         file_metadata = {
             "name": file.filename,
-            "parents": ["15B9UQLcfqj1-x36ITnoLJUoaRuyxagAd"]
+            "parents": [FOLDER_ID]
         }
 
-        media = MediaIoBaseUpload(file_stream, mimetype=file.content_type)
+        # MediaIoBaseUpload maneja la subida del stream de bytes
+        media = MediaIoBaseUpload(file_stream, mimetype=file.content_type, resumable=True)
 
         uploaded_file = service.files().create(
             body=file_metadata,
@@ -119,11 +102,12 @@ async def upload_video(file: UploadFile = File(...)):
         ).execute()
 
         file_id = uploaded_file.get("id")
+        print(f"Éxito! Archivo subido con ID: {file_id}")
 
-        print("Archivo subido correctamente:", file_id)
-
-        return {"fileId": file_id}
+        return {"fileId": file_id, "status": "success"}
 
     except Exception as e:
-        print("ERROR REAL:", str(e))
+        print("ERROR CRÍTICO:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
