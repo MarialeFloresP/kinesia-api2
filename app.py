@@ -13,6 +13,11 @@ from googleapiclient.http import MediaIoBaseUpload
 import io
 import json
 
+# Appwrite imports
+from appwrite.client import Client
+from appwrite.services.storage import Storage
+from appwrite.input_file import InputFile
+
 app = FastAPI()
 
 app.add_middleware(
@@ -22,6 +27,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- CONFIGURACIÓN DE APPWRITE ---
+client = Client()
+client.set_endpoint(os.environ.get("APPWRITE_ENDPOINT")) 
+client.set_project(os.environ.get("APPWRITE_PROJECT_ID")) 
+client.set_key(os.environ.get("APPWRITE_API_KEY")) 
+
+storage = Storage(client)
+BUCKET_ID = "videos_bucket"
+
 
 @app.post("/analyze")
 async def analyze_video(file: UploadFile = File(...), movement: str = Form(...)):
@@ -59,56 +74,37 @@ async def analyze_video(file: UploadFile = File(...), movement: str = Form(...))
 
     return results
 
-# Endpoint para subir videos a Drive -------------------------
-
+# Endpoint para subir videos  -------------------------
 @app.post("/upload-video")
 async def upload_video(file: UploadFile = File(...)):
     try:
-        print("Subiendo video a Drive:", file.filename)
+        print("Subiendo video a Appwrite:", file.filename)
 
-        # 1. Ajustamos el nombre de la variable de entorno a KEY_JSON (como lo pusiste en Render)
-        raw_json = os.environ.get("KEY_JSON")
-        if not raw_json:
-            raise HTTPException(status_code=500, detail="La variable KEY_JSON no está configurada")
+        # Leer contenido
+        file_bytes = await file.read()
         
-        credentials_dict = json.loads(raw_json)
+        # Generar un ID único para el archivo
+        file_id = str(uuid.uuid4())[:20]
 
-        credentials = service_account.Credentials.from_service_account_info(
-            credentials_dict,
-            scopes=["https://www.googleapis.com/auth/drive"]
+        # Subir a Appwrite
+        result = storage.create_file(
+            bucket_id=BUCKET_ID,
+            file_id=file_id,
+            file=InputFile.from_bytes(file_bytes, filename=file.filename)
         )
 
-        service = build("drive", "v3", credentials=credentials)
+        # URL para ver/descargar el video
+        # Nota: Asegúrate de que los permisos del bucket estén en "Any" para Read
+        video_url = f"{os.environ.get('APPWRITE_ENDPOINT')}/storage/buckets/{BUCKET_ID}/files/{file_id}/view?project={os.environ.get('APPWRITE_PROJECT_ID')}"
 
-        # 2. NUEVO ID de tu carpeta (extraído de tu link)
-        FOLDER_ID = "15B9UQLcfqj1-x36ITnoLJUoaRuyxagAd"
+        print(f"Éxito! Archivo subido a Appwrite con ID: {file_id}")
 
-        # Leer el contenido del archivo
-        file_bytes = await file.read()
-        file_stream = io.BytesIO(file_bytes)
-
-        file_metadata = {
-            "name": file.filename,
-            "parents": [FOLDER_ID]
+        return {
+            "fileId": file_id, 
+            "status": "success",
+            "url": video_url
         }
 
-        # MediaIoBaseUpload maneja la subida del stream de bytes
-        media = MediaIoBaseUpload(file_stream, mimetype=file.content_type, resumable=True)
-
-        uploaded_file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="id",
-            supportsAllDrives=True
-        ).execute()
-
-        file_id = uploaded_file.get("id")
-        print(f"Éxito! Archivo subido con ID: {file_id}")
-
-        return {"fileId": file_id, "status": "success"}
-
     except Exception as e:
-        print("ERROR CRÍTICO:", str(e))
+        print("ERROR EN APPWRITE:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
-
-
